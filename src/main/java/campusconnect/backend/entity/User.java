@@ -31,4 +31,7 @@ public class User {
     private Role role;
 
     private boolean enabled = true;
+
+    @ManyToOne
+    private College college;
 }

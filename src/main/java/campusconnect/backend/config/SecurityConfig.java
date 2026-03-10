@@ -1,5 +1,6 @@
-package campusconnect.backend.security;
+package campusconnect.backend.config;
 
+import campusconnect.backend.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
