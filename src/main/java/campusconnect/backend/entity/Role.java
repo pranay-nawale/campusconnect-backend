@@ -5,6 +5,6 @@ public enum Role {
     ADMIN,
     STUDENT,
     COLLEGE,
-    VENDOR
+    VENDOR,
 
 }
