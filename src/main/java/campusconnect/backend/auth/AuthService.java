@@ -1,6 +1,7 @@
 package campusconnect.backend.auth;
 
 import campusconnect.backend.dto.*;
+import campusconnect.backend.entity.Role;
 import campusconnect.backend.entity.User;
 import campusconnect.backend.repository.UserRepository;
 import campusconnect.backend.security.JwtUtil;
@@ -18,6 +19,18 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public void register(RegisterRequest request) {
+
+        if(request.getRole() == Role.ADMIN){
+            throw new RuntimeException("Admin cannot register");
+        }
+        if (request.getRole() == null) {
+            throw new RuntimeException("Role is required");
+        }
+
+        if(userRepository.findByEmail(request.getEmail()).isPresent()){
+            throw new RuntimeException("Email already registered");
+        }
+
 
         User user = User.builder()
                 .name(request.getName())
