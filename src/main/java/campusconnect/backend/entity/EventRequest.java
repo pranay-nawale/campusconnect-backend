@@ -1,50 +1,36 @@
 package campusconnect.backend.entity;
-
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+
+import lombok.*;
+
 @Entity
-public class Event {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class EventRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Getter
-    @Setter
     private String title;
 
-    @Getter
-    @Setter
     private String description;
 
-    @Getter
-    @Setter
     private LocalDateTime eventDate;
 
-    @Getter
-    @Setter
     private int maxParticipants;
 
-    @Getter
-    @Setter
-    private boolean isPaid;
-
-    @Getter
-    @Setter
-    private double price;
-
-    @Getter
-    @Setter
     @Enumerated(EnumType.STRING)
     private EventCategory category;
 
-    @Getter
-    @Setter
+    @Enumerated(EnumType.STRING)
+    private VerificationStatus status;
+
     @ManyToOne
     private College college;
-
 }
