@@ -16,7 +16,7 @@ public class EventPayment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private double amount;
+    private Double amount;
 
     private String paymentMethod;
 

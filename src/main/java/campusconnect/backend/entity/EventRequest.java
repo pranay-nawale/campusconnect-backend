@@ -39,7 +39,7 @@ public class EventRequest {
     private boolean isPaid = false; // true = paid, false = free
 
     @Column(nullable = false, columnDefinition = "double precision default 0")
-    private double price = 0; // applicable only if isPaid = true
+    private Double price; // applicable only if isPaid = true
 
     @ManyToOne
     private College college;

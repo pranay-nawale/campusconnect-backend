@@ -1,13 +1,17 @@
 package campusconnect.backend.admin.student;
 
 import campusconnect.backend.entity.Student;
+import campusconnect.backend.entity.User;
 import campusconnect.backend.entity.VerificationStatus;
+import campusconnect.backend.notification.NotificationFacade;
+import campusconnect.backend.notification.NotificationType;
 import campusconnect.backend.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -15,6 +19,9 @@ public class AdminStudentService {
 
     @Autowired
     private StudentRepository studentRepo;
+
+    @Autowired
+    private NotificationFacade notificationFacade;
 
     public AdminStudentDTO mapToDTO(Student student) {
         return AdminStudentDTO.builder()
@@ -61,10 +68,36 @@ public class AdminStudentService {
 
     public AdminStudentDTO verifyStatus(Long id, VerificationStatus status){
         Student student = studentRepo.findById(id)
-                .orElseThrow(()-> new RuntimeException("Student not found"));
-        student.setVerificationStatus(status);
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
+        student.setVerificationStatus(status);
         studentRepo.save(student);
+
+        // 🔔 Notification logic
+// 🔔 Notification logic
+        User user = student.getUser();
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+
+        if(status == VerificationStatus.APPROVED){
+            notificationFacade.notifyUser(
+                    user,
+                    "Your student account has been verified ✅",
+                    NotificationType.STUDENT_APPROVED, // ✅ better
+                    vars,
+                    true
+            );
+        }
+        else if(status == VerificationStatus.REJECTED){
+            notificationFacade.notifyUser(
+                    user,
+                    "Your student verification was rejected ❌",
+                    NotificationType.STUDENT_REJECTED, // ✅ better
+                    vars,
+                    false
+            );
+        }
 
         return mapToDTO(student);
     }

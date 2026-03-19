@@ -31,5 +31,8 @@ public class EventRegistration {
     private boolean paymentDone = false; // true if student paid
 
     @Column(nullable = false, columnDefinition = "double precision default 0")
-    private double paidAmount = 0;       // 0 for free events
+    private double paidAmount = 0;// 0 for free events
+
+    @Column(name = "qr_code")
+    private String qrCode;
 }

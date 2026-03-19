@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial;">
+
+<h2>CampusConnect Invoice</h2>
+
+<p><b>Name:</b> <span th:text="${name}"></span></p>
+<p><b>Event:</b> <span th:text="${eventName}"></span></p>
+<p><b>Amount:</b> ₹<span th:text="${amount}"></span></p>
+
+<p><b>Date:</b> <span th:text="${date}"></span></p>
+
+<p>Scan QR for attendance:</p>
+
+<img th:src="'data:image/png;base64,' + ${qrCode}" width="150"/>
+
+</body>
+</html>

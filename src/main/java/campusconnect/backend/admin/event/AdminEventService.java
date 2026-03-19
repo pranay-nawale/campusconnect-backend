@@ -2,6 +2,8 @@ package campusconnect.backend.admin.event;
 
 import campusconnect.backend.admin.vendor.AdminVendorDTO;
 import campusconnect.backend.entity.*;
+import campusconnect.backend.notification.NotificationFacade;
+import campusconnect.backend.notification.NotificationType;
 import campusconnect.backend.repository.EventRequestRepository;
 import campusconnect.backend.repository.EventServiceRepository;
 import campusconnect.backend.repository.ServiceRepository;
@@ -9,7 +11,9 @@ import campusconnect.backend.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,9 @@ public class AdminEventService {
 
     @Autowired
     private ServiceRepository serviceRepo;
+
+    @Autowired
+    private NotificationFacade notificationFacade;
 
     public AdminEventDTO mapToDTO(EventRequest event){
         return AdminEventDTO.builder()
@@ -67,8 +74,44 @@ public class AdminEventService {
                 .orElseThrow(() -> new RuntimeException("event not found"));
 
         request.setEventStatus(status);
-
         eventRequestRepo.save(request);
+
+// 🔔 Notification logic
+        User collegeUser = request.getCollege().getUser();
+
+// 🔥 Create variables for template
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", collegeUser.getName());
+        vars.put("eventName", request.getTitle());
+        vars.put("eventDate", request.getEventDate());
+
+        if(status == EventStatus.CONFIRMED){
+            notificationFacade.notifyUser(
+                    collegeUser,
+                    "Your event has been confirmed 🎉",
+                    NotificationType.EVENT_CONFIRMED,
+                    vars,
+                    true
+            );
+        }
+        else if(status == EventStatus.REJECTED){
+            notificationFacade.notifyUser(
+                    collegeUser,
+                    "Your event has been rejected ❌",
+                    NotificationType.EVENT_REJECTED,
+                    vars,
+                    true
+            );
+        }
+        else if(status == EventStatus.PLANNED){
+            notificationFacade.notifyUser(
+                    collegeUser,
+                    "Your event plan has been prepared 📋",
+                    NotificationType.EVENT_PLAN_RECEIVED,
+                    vars,
+                    false // no email
+            );
+        }
 
         return mapToDTO(request);
     }
@@ -96,6 +139,22 @@ public class AdminEventService {
         }
 
         eventServiceRepo.save(eventService);
+
+        User collegeUser = event.getCollege().getUser();
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", collegeUser.getName());
+        vars.put("eventName", event.getTitle());
+        vars.put("serviceType", service.getService());
+        vars.put("eventDate", event.getEventDate());
+
+        notificationFacade.notifyUser(
+                collegeUser,
+                "Vendor assigned for service: " + service.getService(),
+                NotificationType.VENDOR_ASSIGNED,
+                vars,
+                false // no email
+        );
 
         return mapToEventServiceDTO(eventService);
 

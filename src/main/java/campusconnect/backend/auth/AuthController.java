@@ -3,6 +3,7 @@ package campusconnect.backend.auth;
 //import campusconnect.backend.admin.AdminService;
 import campusconnect.backend.dto.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,4 +29,8 @@ public class AuthController {
     }
 
 
+    @GetMapping("/test/debug")
+    public String debug(Authentication auth){
+        return auth.getAuthorities().toString();
+    }
 }

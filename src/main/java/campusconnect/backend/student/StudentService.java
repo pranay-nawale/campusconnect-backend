@@ -3,6 +3,7 @@ package campusconnect.backend.student;
 import campusconnect.backend.common.storage.dto.FileUploadResponse;
 import campusconnect.backend.common.storage.service.FileUploadService;
 import campusconnect.backend.entity.*;
+import campusconnect.backend.notification.*;
 import campusconnect.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,75 +12,101 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class
-StudentService {
+public class StudentService {
 
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
     private final EventRequestRepository eventRequestRepository;
     private final EventRegistrationRepository eventRegistrationRepository;
     private final FileUploadService fileUploadService;
-
-
-    private final FeedbackRepository feedbackRepository;
+    private final NotificationFacade notificationFacade;
+    private final QRCodeService qrCodeService;
+    private final InvoiceService invoiceService;
+    private final EmailService emailService;
 
     private static final String UPLOAD_DIR = "uploads/";
 
-    // ------------------- EVENT REGISTRATION -------------------
     @Transactional
-    public String registerForEvent(Long eventId, String email) {
+    public String registerForEvent(Long eventId, String email) throws Exception {
 
         Student student = studentRepository.findByUser(
                 userRepository.findByEmail(email)
                         .orElseThrow(() -> new RuntimeException("User not found"))
-        ).orElseThrow(() -> new RuntimeException("Student profile not found"));
-
-        // 🔴 Important check
-        if (student.getVerificationStatus() != VerificationStatus.APPROVED) {
-            throw new RuntimeException("Your profile is not approved. You cannot register for events.");
-        }
+        ).orElseThrow(() -> new RuntimeException("Student not found"));
 
         EventRequest event = eventRequestRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
-        // PROFILE APPROVAL CHECK
-        if(student.getVerificationStatus() != VerificationStatus.APPROVED){
-            return "Your profile is pending admin verification";
-        }
+        System.out.println("🔥 REGISTER API HIT");
+        System.out.println("Event ID: " + eventId);
+        System.out.println("Student: " + student.getId());
 
-        // Duplicate check
-        if(eventRegistrationRepository.findByStudentIdAndEventId(student.getId(), event.getId()).isPresent()){
+        // ✅ Already registered check
+        if(eventRegistrationRepository
+                .findByStudentIdAndEventId(student.getId(), event.getId()).isPresent()){
             return "Already Registered";
         }
 
-        // ----------- LIMIT CHECK (NEW) -----------
-        Long registeredCount = eventRegistrationRepository.countByEvent_Id(event.getId());
+        // ✅ FREE vs PAID check
+        boolean isPaid = event.getPrice() != null && event.getPrice() > 0;
 
-        if(registeredCount >= event.getMaxParticipants()){
-            event.setEventStatus(EventStatus.BOOKED);
-            eventRequestRepository.save(event);
-            return "Registration Closed - Limit Reached";
-        }
-        // ---------- PAYMENT CHECK ------------
+        // 🔥 STEP 1 — QR DATA
+        String qrData = "EVENT:" + event.getId() +
+                "|USER:" + student.getUser().getId();
 
-        // Payment check
-        if(event.isPaid()){
-            return "Payment Required";
-        }
+        String qrBase64 = qrCodeService.generateQRCodeBase64(qrData);
 
+        // 🔥 STEP 2 — CREATE REGISTRATION
         EventRegistration registration = EventRegistration.builder()
                 .student(student)
                 .event(event)
-                .paymentDone(!event.isPaid())
-                .paidAmount(0.0)
+                .paymentDone(!isPaid) // free = true
+                .paidAmount(isPaid ? event.getPrice() : 0.0)
+                .qrCode(qrData)
                 .build();
 
         eventRegistrationRepository.save(registration);
+
+        // 🔥 STEP 3 — IF PAID → INVOICE + EMAIL
+        if(isPaid){
+
+            Map<String, Object> vars = new HashMap<>();
+            vars.put("name", student.getUser().getName());
+            vars.put("eventName", event.getTitle());
+            vars.put("amount", event.getPrice());
+            vars.put("date", LocalDate.now());
+            vars.put("qrCode", qrBase64);
+
+            byte[] pdf = invoiceService.generateInvoice(vars);
+
+            emailService.sendEmailWithAttachment(
+                    student.getUser().getEmail(),
+                    "Event Registration Invoice",
+                    "<p>You are successfully registered</p>",
+                    pdf
+            );
+        }
+
+        // 🔥 STEP 4 — NOTIFICATION
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", student.getUser().getName());
+        vars.put("eventName", event.getTitle());
+
+        notificationFacade.notifyUser(
+                student.getUser(),
+                "You registered for " + event.getTitle() + " 🎉",
+                NotificationType.EVENT_REGISTERED,
+                vars,
+                false
+        );
 
         return "Registered Successfully";
     }
@@ -150,10 +177,8 @@ StudentService {
             throw new RuntimeException("Student profile already exists");
         }
 
-        Student student = Student.builder()
-                .user(user)
-                .verificationStatus(VerificationStatus.PENDING)
-                .build();
+        Student student = new Student();
+        student.setUser(user);
 
         updateStudentFields(student, request);
 
@@ -210,9 +235,7 @@ StudentService {
         if (photo != null && !photo.isEmpty()) {
             try {
                 File directory = new File(UPLOAD_DIR);
-                if (!directory.exists()) {
-                    directory.mkdir();
-                }
+                if (!directory.exists()) directory.mkdir();
 
                 String fileName = System.currentTimeMillis() + "_" + photo.getOriginalFilename();
                 String filePath = UPLOAD_DIR + fileName;
@@ -228,15 +251,13 @@ StudentService {
 
     private StudentProfileDTO mapToDTO(Student student) {
         return StudentProfileDTO.builder()
-                .userName(student.getUser().getName())
                 .department(student.getDepartment())
                 .year(student.getYear())
                 .bio(student.getBio())
-                .skills(student.getSkills())
+                .skills(Collections.singletonList(String.valueOf(student.getSkills())))
                 .hobbies(student.getHobbies())
                 .linkedinUrl(student.getLinkedinUrl())
                 .githubUrl(student.getGithubUrl())
-                .verificationStatus(student.getVerificationStatus())
                 .build();
     }
 
@@ -254,34 +275,5 @@ StudentService {
                 .toList();
     }
 
-    //--------------STUDENT FEEDBACK----------------
-    public String submitFeedback(Long studentId, Long eventId, String message, int rating){
 
-        Optional<EventRegistration> registration =
-                eventRegistrationRepository.findByStudentIdAndEventId(studentId, eventId);
-
-        // Check student attended event
-        if(registration.isEmpty()){
-            throw new RuntimeException("You did not attend this event");
-        }
-
-        // Check feedback already given
-        if(feedbackRepository.existsByStudentIdAndEventId(studentId, eventId)){
-            throw new RuntimeException("You already submitted feedback");
-        }
-
-        Student student = studentRepository.findById(studentId).orElseThrow();
-        EventRequest event = eventRequestRepository.findById(eventId).orElseThrow();
-
-        Feedback feedback = Feedback.builder()
-                .student(student)
-                .event(event)
-                .message(message)
-                .rating(rating)
-                .build();
-
-        feedbackRepository.save(feedback);
-
-        return "Feedback submitted successfully";
-    }
 }

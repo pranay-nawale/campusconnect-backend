@@ -94,7 +94,7 @@ public class CollegeController {
     @PostMapping("/events/{id}/confirm")
     public String confirmEvent(@PathVariable Long id,
                                @RequestBody EventPaymentDTO payment,
-                               Authentication authentication){
+                               Authentication authentication) throws Exception {
 
         return collegeService.confirmEventPlan(
                 id,

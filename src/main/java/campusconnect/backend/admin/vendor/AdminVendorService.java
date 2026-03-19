@@ -1,14 +1,19 @@
 package campusconnect.backend.admin.vendor;
 
 import campusconnect.backend.entity.ServiceType;
+import campusconnect.backend.entity.User;
 import campusconnect.backend.entity.Vendor;
 import campusconnect.backend.entity.VerificationStatus;
+import campusconnect.backend.notification.NotificationFacade;
+import campusconnect.backend.notification.NotificationType;
 import campusconnect.backend.repository.ServiceRepository;
 import campusconnect.backend.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -18,6 +23,7 @@ public class AdminVendorService {
 
     private final VendorRepository vendorRepo;
     private final ServiceRepository serviceRepo;
+    private final NotificationFacade notificationFacade;
 
     public AdminVendorDTO mapToDTO(Vendor vendor) {
 
@@ -83,6 +89,31 @@ public class AdminVendorService {
         }
 
         vendorRepo.save(vendor);
+
+        // 🔔 ADD NOTIFICATION HERE
+        User user = vendor.getUser();
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+
+        if (status == VerificationStatus.APPROVED) {
+            notificationFacade.notifyUser(
+                    user,
+                    "Your vendor account has been approved ✅",
+                    NotificationType.VENDOR_APPROVED,
+                    vars,
+                    true
+            );
+        }
+        else if (status == VerificationStatus.REJECTED) {
+            notificationFacade.notifyUser(
+                    user,
+                    "Your vendor verification was rejected ❌",
+                    NotificationType.VENDOR_REJECTED,
+                    vars,
+                    false
+            );
+        }
 
         return mapToDTO(vendor);
     }

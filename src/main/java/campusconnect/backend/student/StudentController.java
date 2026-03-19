@@ -63,7 +63,7 @@ public class StudentController {
     public ResponseEntity<String> registerEvent(
             @PathVariable Long eventId,
             Authentication authentication
-    ) {
+    ) throws Exception {
 
         String email = authentication.getName();
         String message = studentService.registerForEvent(eventId, email);
@@ -84,13 +84,13 @@ public class StudentController {
     }
 
     //---------------  STUDENT FEEDBACK  ---------------------
-    @PostMapping("/feedback")
-    public String giveFeedback(
-            @RequestParam Long studentId,
-            @RequestParam Long eventId,
-            @RequestParam String message,
-            @RequestParam int rating){
-
-        return studentService.submitFeedback(studentId,eventId,message,rating);
-    }
+//    @PostMapping("/feedback")
+//    public String giveFeedback(
+//            @RequestParam Long studentId,
+//            @RequestParam Long eventId,
+//            @RequestParam String message,
+//            @RequestParam int rating){
+//
+//        return studentService.submitFeedback(studentId,eventId,message,rating);
+//    }
 }

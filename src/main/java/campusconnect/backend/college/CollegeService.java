@@ -3,7 +3,7 @@ package campusconnect.backend.college;
 import campusconnect.backend.common.storage.dto.FileUploadResponse;
 import campusconnect.backend.common.storage.service.FileUploadService;
 import campusconnect.backend.entity.*;
-import campusconnect.backend.notification.EmailService;
+import campusconnect.backend.notification.*;
 import campusconnect.backend.repository.*;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +11,11 @@ import org.springframework.stereotype.Service;
 import campusconnect.backend.dto.EventPaymentDTO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,9 @@ public class CollegeService {
     private final EventPaymentRepository eventPaymentRepository;
     private final EmailService emailService;
     private final FileUploadService  fileUploadService;
+    private final NotificationFacade notificationFacade;
+    private final QRCodeService qrCodeService;
+    private final InvoiceService invoiceService;
 
     public String registerCollege(CollegeRegistrationRequestDTO request, String email) throws MessagingException {
 
@@ -263,6 +269,18 @@ public class CollegeService {
 
         eventRequestRepository.save(eventRequest);
 
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+        vars.put("eventName", eventRequest.getTitle());
+
+        notificationFacade.notifyUser(
+                user,
+                "Your event request has been submitted 📩",
+                NotificationType.EVENT_REGISTERED,
+                vars,
+                false
+        );
+
         // Create EventService entries
         if(request.getServiceIds() != null && !request.getServiceIds().isEmpty()){
 
@@ -280,12 +298,6 @@ public class CollegeService {
                 eventServiceRepository.save(eventService);
             }
         }
-
-//        emailService.sendEmail(
-//                college.getUser().getEmail(),
-//                "Event Request Created",
-//                "Your event request '" + request.getTitle() + "' has been successfully submitted."
-//        );
 
         return EventRequestResponseDTO.builder()
                 .id(eventRequest.getId())
@@ -399,7 +411,9 @@ public class CollegeService {
 
     public String confirmEventPlan(Long eventId,
                                    EventPaymentDTO paymentDTO,
-                                   String email){
+                                   String email) throws Exception {
+
+
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -410,6 +424,9 @@ public class CollegeService {
         EventRequest event = eventRequestRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
+        System.out.println("Event College: " + event.getCollege().getId());
+        System.out.println("User College: " + college.getId());
+
         if(!event.getCollege().getId().equals(college.getId())){
             throw new RuntimeException("You cannot confirm this event");
         }
@@ -417,6 +434,7 @@ public class CollegeService {
         if(event.getEventStatus() != EventStatus.PLANNED){
             throw new RuntimeException("Event plan is not ready yet");
         }
+
 
         EventPayment payment = EventPayment.builder()
                 .amount(paymentDTO.getAmount())
@@ -432,11 +450,22 @@ public class CollegeService {
 
         eventRequestRepository.save(event);
 
-//        emailService.sendEmail(
-//                college.getUser().getEmail(),
-//                "Event Confirmed",
-//                "Your event '" + event.getTitle() + "' has been confirmed after advance payment."
-//        );
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+        vars.put("eventName", event.getTitle());
+        vars.put("amount", payment.getAmount());
+        // optional if you have it
+        vars.put("transactionId", payment.getTransactionId());
+
+        notificationFacade.notifyUser(
+                user,
+                "Your event has been confirmed after payment 🎉",
+                NotificationType.PAYMENT_SUCCESS,
+                vars,
+                true
+        );
+
+
 
         return "Event confirmed after advance payment";
     }
@@ -464,11 +493,17 @@ public class CollegeService {
 
         eventRequestRepository.save(event);
 
-//        emailService.sendEmail(
-//                college.getUser().getEmail(),
-//                "Event Plan Rejected",
-//                "Your event plan for '" + event.getTitle() + "' has been rejected."
-//        );
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+        vars.put("eventName", event.getTitle());
+
+        notificationFacade.notifyUser(
+                user,
+                "Your event plan has been rejected ❌",
+                NotificationType.EVENT_REJECTED,
+                vars,
+                false
+        );
 
         return "Event plan rejected";
     }
@@ -498,6 +533,18 @@ public class CollegeService {
         event.setEventStatus(EventStatus.RESCHEDULED);
 
         eventRequestRepository.save(event);
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("name", user.getName());
+        vars.put("eventName", event.getTitle());
+        vars.put("eventDate", newDate); // or event.getEventDate()
+
+        notificationFacade.notifyUser(
+                user,
+                "Your event reschedule request has been sent 🔄",
+                NotificationType.EVENT_REMINDER,
+                vars,
+                false
+        );
 
         return "Event reschedule request sent";
     }
