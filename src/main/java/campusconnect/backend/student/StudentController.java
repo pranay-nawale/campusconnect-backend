@@ -1,13 +1,11 @@
 package campusconnect.backend.student;
 
 import campusconnect.backend.entity.EventRequest;
-import campusconnect.backend.entity.Student;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,34 +20,34 @@ public class StudentController {
 
     // ------------------- CREATE STUDENT PROFILE -------------------
     @PostMapping(value = "/profile", consumes = "multipart/form-data")
-    public ResponseEntity<StudentProfileDTO> createProfile(
-            @Valid @ModelAttribute StudentProfileDTO request,
+    public ResponseEntity<StudentResponseDTO> createStudentProfile(
+            @Valid @ModelAttribute StudentRequestDTO request,
             Authentication authentication
     ) {
 
         String email = authentication.getName();
-        StudentProfileDTO response = studentService.createStudentProfile(request, email);
+        StudentResponseDTO response = studentService.createStudentProfile(request, email);
         return ResponseEntity.ok(response);
     }
 
     // ------------------- GET STUDENT PROFILE -------------------
     @GetMapping("/profile")
-    public ResponseEntity<StudentProfileDTO> getProfile(Authentication authentication) {
+    public ResponseEntity<StudentResponseDTO> getProfile(Authentication authentication) {
 
         String email = authentication.getName();
-        StudentProfileDTO response = studentService.getStudentProfile(email);
+        StudentResponseDTO response = studentService.getStudentProfile(email);
         return ResponseEntity.ok(response);
     }
 
     // ------------------- UPDATE STUDENT PROFILE -------------------
-    @PutMapping(value = "/profile", consumes = "multipart/form-data")
-    public ResponseEntity<StudentProfileDTO> updateProfile(
-            @Valid @ModelAttribute StudentProfileDTO request,
+    @PatchMapping(value = "/profile", consumes = "multipart/form-data")
+    public ResponseEntity<StudentResponseDTO> updateProfile(
+            @Valid @ModelAttribute StudentRequestDTO request,
             Authentication authentication
     ) {
 
         String email = authentication.getName();
-        StudentProfileDTO response = studentService.updateStudentProfile(request, email);
+        StudentResponseDTO response = studentService.updateStudentProfile(request, email);
         return ResponseEntity.ok(response);
     }
 

@@ -31,6 +31,7 @@ public class StudentService {
     private final QRCodeService qrCodeService;
     private final InvoiceService invoiceService;
     private final EmailService emailService;
+    private final CollegeRepository collegeRepository;
 
     private static final String UPLOAD_DIR = "uploads/";
 
@@ -111,37 +112,42 @@ public class StudentService {
         return "Registered Successfully";
     }
 
-
-
-    public Student uploadDocuments(String email,
+    public void uploadDocuments(Student student,
                                    MultipartFile profilePhoto,
                                    MultipartFile idCard) {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+//        User user = userRepository.findByEmail(email)
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//        Student student = studentRepository.findByUser(user)
+//                .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        Student student = studentRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
 
-        FileUploadResponse profile =
-                fileUploadService.uploadFile(profilePhoto,
-                        "campusconnect/students/profile");
+            FileUploadResponse profile =
+                    fileUploadService.uploadFile(profilePhoto,
+                            "campusconnect/students/profile");
 
-        FileUploadResponse id =
-                fileUploadService.uploadFile(idCard,
-                        "campusconnect/students/documents");
+            student.setProfilePhoto(profile.getUrl());
+            student.setProfilePhotoPublicId(profile.getPublicId());
+        }
 
-        student.setProfilePhoto(profile.getUrl());
-        student.setProfilePhotoPublicId(profile.getPublicId());
+        if (idCard != null && !idCard.isEmpty()) {
+            FileUploadResponse id =
+                    fileUploadService.uploadFile(idCard,
+                            "campusconnect/students/documents");
 
-        student.setIdCardUrl(id.getUrl());
-        student.setIdCardPublicId(id.getPublicId());
-
-        return studentRepository.save(student);
+            student.setIdCardUrl(id.getUrl());
+            student.setIdCardPublicId(id.getPublicId());
+        }
     }
 
 
     public Student updateProfilePhoto(String email, MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Profile photo is required");
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -168,7 +174,7 @@ public class StudentService {
 
     // ------------------- STUDENT PROFILE -------------------
     @Transactional
-    public StudentProfileDTO createStudentProfile(StudentProfileDTO request, String email) {
+    public StudentResponseDTO createStudentProfile(StudentRequestDTO request, String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -182,12 +188,14 @@ public class StudentService {
 
         updateStudentFields(student, request);
 
+        uploadDocuments(student, request.getProfilePhoto(), request.getIdCard());
+
         studentRepository.save(student);
 
         return mapToDTO(student);
     }
 
-    public StudentProfileDTO getStudentProfile(String email) {
+    public StudentResponseDTO getStudentProfile(String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -199,7 +207,7 @@ public class StudentService {
     }
 
     @Transactional
-    public StudentProfileDTO updateStudentProfile(StudentProfileDTO request, String email) {
+    public StudentResponseDTO updateStudentProfile(StudentRequestDTO request, String email) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -208,6 +216,8 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student profile not found"));
 
         updateStudentFields(student, request);
+
+        uploadDocuments(student, request.getProfilePhoto(), request.getIdCard());
 
         studentRepository.save(student);
 
@@ -220,8 +230,9 @@ public class StudentService {
     }
 
     // ------------------- HELPER METHODS -------------------
-    private void updateStudentFields(Student student, StudentProfileDTO request) {
+    private void updateStudentFields(Student student, StudentRequestDTO request) {
 
+        student.setRollNumber(request.getRollNumber());
         student.setDepartment(request.getDepartment());
         student.setYear(request.getYear());
         student.setBio(request.getBio());
@@ -230,34 +241,53 @@ public class StudentService {
         student.setLinkedinUrl(request.getLinkedinUrl());
         student.setGithubUrl(request.getGithubUrl());
 
-        MultipartFile photo = request.getProfilePhoto();
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> new RuntimeException("College not found"));
 
-        if (photo != null && !photo.isEmpty()) {
-            try {
-                File directory = new File(UPLOAD_DIR);
-                if (!directory.exists()) directory.mkdir();
+        student.setCollege(college);
 
-                String fileName = System.currentTimeMillis() + "_" + photo.getOriginalFilename();
-                String filePath = UPLOAD_DIR + fileName;
 
-                photo.transferTo(new File(filePath));
-                student.setProfilePhoto(filePath);
-
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to upload profile photo");
-            }
-        }
+//        MultipartFile photo = request.getProfilePhoto();
+//
+//        if (photo != null && !photo.isEmpty()) {
+//            try {
+//                File directory = new File(UPLOAD_DIR);
+//                if (!directory.exists()) directory.mkdir();
+//
+//                String fileName = System.currentTimeMillis() + "_" + photo.getOriginalFilename();
+//                String filePath = UPLOAD_DIR + fileName;
+//
+//                photo.transferTo(new File(filePath));
+//                student.setProfilePhoto(filePath);
+//
+//            } catch (IOException e) {
+//                throw new RuntimeException("Failed to upload profile photo");
+//            }
+//        }
     }
 
-    private StudentProfileDTO mapToDTO(Student student) {
-        return StudentProfileDTO.builder()
-                .department(student.getDepartment())
-                .year(student.getYear())
+    private StudentResponseDTO mapToDTO(Student student) {
+        return StudentResponseDTO.builder()
+                .userId(student.getUser().getId())
+                .userName(student.getUser().getName())
+                .userEmail(student.getUser().getEmail())
+
+                .collegeId(student.getCollege().getId())
+                .collegeName(student.getCollege().getName())
+
                 .bio(student.getBio())
-                .skills(Collections.singletonList(String.valueOf(student.getSkills())))
+                .skills(student.getSkills())
                 .hobbies(student.getHobbies())
                 .linkedinUrl(student.getLinkedinUrl())
                 .githubUrl(student.getGithubUrl())
+                .rollNumber(student.getRollNumber())
+                .department(student.getDepartment())
+                .year(student.getYear())
+
+                .profilePhoto(student.getProfilePhoto())
+                .idCardUrl(student.getIdCardUrl())
+
+                .verificationStatus(student.getVerificationStatus())
                 .build();
     }
 

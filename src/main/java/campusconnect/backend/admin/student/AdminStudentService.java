@@ -6,6 +6,7 @@ import campusconnect.backend.entity.VerificationStatus;
 import campusconnect.backend.notification.NotificationFacade;
 import campusconnect.backend.notification.NotificationType;
 import campusconnect.backend.repository.StudentRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,15 +38,16 @@ public class AdminStudentService {
                 .profilePhoto(student.getProfilePhoto())
                 .idCardUrl(student.getIdCardUrl())
                 .verificationStatus(student.getVerificationStatus())
-                .userId(student.getUser().getId())
-                .userName(student.getUser().getName())
-                .userEmail(student.getUser().getEmail())
-                .userEnabled(student.getUser().isEnabled())
+                .userId(student.getUser() != null ? student.getUser().getId() : null)
+                .userName(student.getUser() != null ? student.getUser().getName() : null)
+                .userEmail(student.getUser() != null ? student.getUser().getEmail() : null)
+                .userEnabled(student.getUser() != null && student.getUser().isEnabled())
                 .CollegeId(student.getCollege() != null ? student.getCollege().getId() : null)
                 .CollegeName(student.getCollege() != null ? student.getCollege().getName() : null)
                 .build();
     }
 
+    @Transactional
     public List<AdminStudentDTO> getStudents(VerificationStatus status){
 
         List<Student> students;
@@ -66,39 +68,61 @@ public class AdminStudentService {
         return mapToDTO(student);
     }
 
-    public AdminStudentDTO verifyStatus(Long id, VerificationStatus status){
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+//    public AdminStudentDTO verifyStatus(Long id, VerificationStatus status){
+//        Student student = studentRepo.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Student not found"));
+//
+//        student.setVerificationStatus(status);
+//        studentRepo.save(student);
+//
+//        // 🔔 Notification logic
+//// 🔔 Notification logic
+//        User user = student.getUser();
+//
+//        if(user != null) {
+//            Map<String, Object> vars = new HashMap<>();
+//            vars.put("name", user.getName());
+//
+//            if (status == VerificationStatus.APPROVED) {
+//                notificationFacade.notifyUser(
+//                        user,
+//                        "Your student account has been verified ✅",
+//                        NotificationType.STUDENT_APPROVED, // ✅ better
+//                        vars,
+//                        true
+//                );
+//            } else if (status == VerificationStatus.REJECTED) {
+//                notificationFacade.notifyUser(
+//                        user,
+//                        "Your student verification was rejected ❌",
+//                        NotificationType.STUDENT_REJECTED, // ✅ better
+//                        vars,
+//                        false
+//                );
+//            }
+//        }
+//
+//        return mapToDTO(student);
+//    }
 
-        student.setVerificationStatus(status);
-        studentRepo.save(student);
+public AdminStudentDTO verifyStatus(Long id, VerificationStatus status){
+    Student student = studentRepo.findById(id)
+            .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        // 🔔 Notification logic
-// 🔔 Notification logic
-        User user = student.getUser();
+    // Log the student BEFORE modification (optional)
+    // System.out.println("Before update: " + student);
 
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("name", user.getName());
+    student.setVerificationStatus(status);
 
-        if(status == VerificationStatus.APPROVED){
-            notificationFacade.notifyUser(
-                    user,
-                    "Your student account has been verified ✅",
-                    NotificationType.STUDENT_APPROVED, // ✅ better
-                    vars,
-                    true
-            );
-        }
-        else if(status == VerificationStatus.REJECTED){
-            notificationFacade.notifyUser(
-                    user,
-                    "Your student verification was rejected ❌",
-                    NotificationType.STUDENT_REJECTED, // ✅ better
-                    vars,
-                    false
-            );
-        }
+    // Log the student AFTER modification, but BEFORE saving
+    System.out.println("Attempting to save student with ID: " + student.getId() + " and status: " + student.getVerificationStatus());
 
-        return mapToDTO(student);
-    }
+    studentRepo.save(student);
+    System.out.println("Student saved successfully."); // This line won't be reached if PSQLException occurs
+    // ... rest of your code
+
+    return mapToDTO(student);
+}
+
+
 }

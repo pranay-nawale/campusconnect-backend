@@ -1,10 +1,8 @@
 package campusconnect.backend.student;
 
-import jakarta.persistence.ElementCollection;
 import lombok.*;
 import jakarta.validation.constraints.*;
 import org.springframework.web.multipart.MultipartFile;
-import campusconnect.backend.entity.VerificationStatus;
 
 import java.util.List;
 
@@ -12,22 +10,21 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StudentProfileDTO {
-
-    private String userName;
+public class StudentRequestDTO {
 
     @Size(max = 300)
     private String bio;
 
-    @ElementCollection
     private List<String> skills;
 
     private String hobbies;
 
     private String linkedinUrl;
+
     private String githubUrl;
 
-    @NotBlank
+    private String rollNumber;
+
     private String department;
 
     @Min(1)
@@ -36,5 +33,9 @@ public class StudentProfileDTO {
 
     private MultipartFile profilePhoto;
 
-    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+    private MultipartFile idCard;
+
+    private Long collegeId;
+
+
 }

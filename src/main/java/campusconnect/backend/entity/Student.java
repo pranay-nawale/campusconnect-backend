@@ -1,13 +1,6 @@
 package campusconnect.backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
@@ -31,7 +24,8 @@ public class Student {
     private int year;
     
     private String bio;
-    
+
+    @ElementCollection
     private List<String> skills;
     
     private String hobbies;
@@ -56,23 +50,23 @@ public class Student {
     @ManyToOne
     private College college;
 
-	public String getRollNumber() {
-		return rollNumber;
-	}
-
-	public void setRollNumber(String rollNumber) {
-		this.rollNumber = rollNumber;
-	}
-
-	public String getDepartment() {
-		return department;
-	}
-
-	public void setDepartment(String department) {
-		this.department = department;
-	}
-
-    public void setSkills(List<String> skills) {
-
-    }
+//	public String getRollNumber() {
+//		return rollNumber;
+//	}
+//
+//	public void setRollNumber(String rollNumber) {
+//		this.rollNumber = rollNumber;
+//	}
+//
+//	public String getDepartment() {
+//		return department;
+//	}
+//
+//	public void setDepartment(String department) {
+//		this.department = department;
+//	}
+//
+//    public void setSkills(List<String> skills) {
+//
+//    }
 }
