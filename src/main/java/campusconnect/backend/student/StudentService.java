@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -230,8 +231,27 @@ public class StudentService {
     }
 
     // ------------------- CONFIRMED EVENTS -------------------
-    public List<EventRequest> getConfirmedEvents() {
-        return eventRequestRepository.findByEventStatus(EventStatus.CONFIRMED);
+    public List<EventRequestDTO> getConfirmedEvents() {
+        List<EventRequest> events = eventRequestRepository.findByEventStatus(EventStatus.CONFIRMED);
+
+        // Convert each EventRequest entity to DTO
+        return events.stream()
+                .map(event -> EventRequestDTO.builder()
+                        .id(event.getId())
+                        .title(event.getTitle())
+                        .description(event.getDescription())
+                        .eventDate(event.getEventDate())
+                        .maxParticipants(event.getMaxParticipants())
+                        .bannerUrl(event.getBannerUrl())
+                        .bannerPublicId(event.getBannerPublicId())
+                        .category(event.getCategory())
+                        .eventStatus(event.getEventStatus())
+                        .isPaid(event.isPaid())
+                        .price(event.getPrice())
+                        .collegeId(event.getCollege() != null ? event.getCollege().getId() : null)
+                        .collegeName(event.getCollege() != null ? event.getCollege().getName() : null)
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // ------------------- HELPER METHODS -------------------
@@ -291,5 +311,11 @@ public class StudentService {
                 .toList();
     }
 
+    public EventRequest getEventById(Long id) {
+
+        return eventRequestRepository
+                .findByIdAndEventStatus(id, EventStatus.CONFIRMED)
+                .orElseThrow(() -> new RuntimeException("Event not found or not confirmed"));
+    }
 
 }

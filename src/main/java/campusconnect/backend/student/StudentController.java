@@ -66,11 +66,10 @@ public class StudentController {
 
     // ------------------- GET CONFIRMED EVENTS -------------------
     @GetMapping("/events")
-    public ResponseEntity<List<EventRequest>> getEvents() {
-        List<EventRequest> events = studentService.getConfirmedEvents();
+    public ResponseEntity<List<EventRequestDTO>> getEvents() {
+        List<EventRequestDTO> events = studentService.getConfirmedEvents();
         return ResponseEntity.ok(events);
     }
-
     // ------------------- REGISTER FOR EVENT -------------------
     @PostMapping("/events/register/{eventId}")
     public ResponseEntity<String> registerEvent(
@@ -106,4 +105,24 @@ public class StudentController {
 //
 //        return studentService.submitFeedback(studentId,eventId,message,rating);
 //    }
+
+    // ------------------- GET EVENT BY ID -------------------
+    @GetMapping("/events/{id}")
+    public ResponseEntity<?> getEventById(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        try {
+            EventRequest event = studentService.getEventById(id);
+            return ResponseEntity.ok(event);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
 }
