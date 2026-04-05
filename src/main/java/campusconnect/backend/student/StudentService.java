@@ -334,13 +334,13 @@ public class StudentService {
     }
 
     //------------------------FEEDBACK--------------
-    public String giveFeedback(FeedbackRequestDTO dto, Authentication auth) {
+    public String giveFeedback(FeedbackRequestDTO dto, String email) {
 
-        // ✅ 1. Get logged-in student's email
-        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         // ✅ 2. Fetch student from DB
-        Student student = studentRepository.findByEmail(email)
+        Student student = studentRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         // ✅ 2. Get event
