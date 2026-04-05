@@ -107,8 +107,8 @@ public class StudentController {
     public ResponseEntity<?> giveFeedback(
             @RequestBody FeedbackRequestDTO dto,
             Authentication auth) {
-
-        String response = studentService.giveFeedback(dto, auth);
+        String email = auth.getName();
+        String response = studentService.giveFeedback(dto, email);
         return ResponseEntity.ok(response);
     }
 
