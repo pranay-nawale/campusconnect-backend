@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -23,9 +25,17 @@ public class Feedback {
 
     @ManyToOne
     @JoinColumn(name = "student_id")
-    private Student student;
+    private Student student; // nullable
+
+    @ManyToOne
+    @JoinColumn(name = "college_id")
+    private College college; // nullable
 
     @ManyToOne
     @JoinColumn(name = "event_id")
     private EventRequest event;
+
+    private String role; // "STUDENT" or "COLLEGE"
+
+    private LocalDateTime createdAt;
 }

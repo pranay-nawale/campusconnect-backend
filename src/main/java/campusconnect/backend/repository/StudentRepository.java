@@ -17,4 +17,6 @@ public interface StudentRepository extends JpaRepository<Student , Long> {
 
     long countByVerificationStatus(VerificationStatus status);
 
+    Optional<Student> findByEmail(String email);
+
 }

@@ -2,6 +2,7 @@ package campusconnect.backend.student;
 
 import campusconnect.backend.entity.College;
 import campusconnect.backend.entity.EventRequest;
+import campusconnect.backend.entity.Feedback;
 import campusconnect.backend.repository.CollegeRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -66,10 +67,16 @@ public class StudentController {
 
     // ------------------- GET CONFIRMED EVENTS -------------------
     @GetMapping("/events")
-    public ResponseEntity<List<EventRequestDTO>> getEvents() {
-        List<EventRequestDTO> events = studentService.getConfirmedEvents();
+    public ResponseEntity<List<EventRequestDTO>> getEvents(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        List<EventRequestDTO> events =
+                studentService.getConfirmedEvents(email);
+
         return ResponseEntity.ok(events);
     }
+
     // ------------------- REGISTER FOR EVENT -------------------
     @PostMapping("/events/register/{eventId}")
     public ResponseEntity<String> registerEvent(
@@ -85,26 +92,25 @@ public class StudentController {
 
     // ------------------- GET EVENTS REGISTERED BY STUDENT -------------------
     @GetMapping("/events/registered")
-    public ResponseEntity<List<EventRequest>> getRegisteredEvents(
-            Authentication authentication
-    ) {
+    public ResponseEntity<List<EventRequest>> getRegisteredEvents(Authentication authentication) {
 
         String email = authentication.getName();
+
+        // Fetch all registered events including free ones
         List<EventRequest> registeredEvents = studentService.getRegisteredEvents(email);
 
         return ResponseEntity.ok(registeredEvents);
     }
 
-    //---------------  STUDENT FEEDBACK  ---------------------
-//    @PostMapping("/feedback")
-//    public String giveFeedback(
-//            @RequestParam Long studentId,
-//            @RequestParam Long eventId,
-//            @RequestParam String message,
-//            @RequestParam int rating){
-//
-//        return studentService.submitFeedback(studentId,eventId,message,rating);
-//    }
+    //----------------------- FEEDBACK ----------------------------
+    @PostMapping("/feedback")
+    public ResponseEntity<?> giveFeedback(
+            @RequestBody FeedbackRequestDTO dto,
+            Authentication auth) {
+
+        String response = studentService.giveFeedback(dto, auth);
+        return ResponseEntity.ok(response);
+    }
 
     // ------------------- GET EVENT BY ID -------------------
     @GetMapping("/events/{id}")

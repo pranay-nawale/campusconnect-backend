@@ -6,17 +6,17 @@ import campusconnect.backend.entity.*;
 import campusconnect.backend.notification.*;
 import campusconnect.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
-import java.util.Collections;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +33,8 @@ public class StudentService {
     private final InvoiceService invoiceService;
     private final EmailService emailService;
     private final CollegeRepository collegeRepository;
+    private final FeedbackRepository feedbackRepository;
+
 
     private static final String UPLOAD_DIR = "uploads/";
 
@@ -231,29 +233,42 @@ public class StudentService {
     }
 
     // ------------------- CONFIRMED EVENTS -------------------
-    public List<EventRequestDTO> getConfirmedEvents() {
-        List<EventRequest> events = eventRequestRepository.findByEventStatus(EventStatus.CONFIRMED);
+    public List<EventRequestDTO> getConfirmedEvents(String email) {
 
-        // Convert each EventRequest entity to DTO
+        // 🔥 Get logged-in student
+        Student student = studentRepository.findByUser(
+                userRepository.findByEmail(email)
+                        .orElseThrow(() -> new RuntimeException("User not found"))
+        ).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<EventRequest> events =
+                eventRequestRepository.findByEventStatus(EventStatus.CONFIRMED);
+
         return events.stream()
-                .map(event -> EventRequestDTO.builder()
-                        .id(event.getId())
-                        .title(event.getTitle())
-                        .description(event.getDescription())
-                        .eventDate(event.getEventDate())
-                        .maxParticipants(event.getMaxParticipants())
-                        .bannerUrl(event.getBannerUrl())
-                        .bannerPublicId(event.getBannerPublicId())
-                        .category(event.getCategory())
-                        .eventStatus(event.getEventStatus())
-                        .isPaid(event.isPaid())
-                        .price(event.getPrice())
-                        .collegeId(event.getCollege() != null ? event.getCollege().getId() : null)
-                        .collegeName(event.getCollege() != null ? event.getCollege().getName() : null)
-                        .build())
+                .map(event -> {
+
+                    boolean isRegistered = eventRegistrationRepository
+                            .existsByStudentIdAndEventId(student.getId(), event.getId());
+
+                    return EventRequestDTO.builder()
+                            .id(event.getId())
+                            .title(event.getTitle())
+                            .description(event.getDescription())
+                            .eventDate(event.getEventDate())
+                            .maxParticipants(event.getMaxParticipants())
+                            .bannerUrl(event.getBannerUrl())
+                            .bannerPublicId(event.getBannerPublicId())
+                            .category(event.getCategory())
+                            .eventStatus(event.getEventStatus())
+                            .isPaid(event.isPaid())
+                            .price(event.getPrice())
+                            .collegeId(event.getCollege() != null ? event.getCollege().getId() : null)
+                            .collegeName(event.getCollege() != null ? event.getCollege().getName() : null)
+//                            .isRegistered(isRegistered) // ✅ FIXED
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
-
     // ------------------- HELPER METHODS -------------------
     private void updateStudentFields(Student student, StudentRequestDTO request) {
 
@@ -316,6 +331,57 @@ public class StudentService {
         return eventRequestRepository
                 .findByIdAndEventStatus(id, EventStatus.CONFIRMED)
                 .orElseThrow(() -> new RuntimeException("Event not found or not confirmed"));
+    }
+
+    //------------------------FEEDBACK--------------
+    public String giveFeedback(FeedbackRequestDTO dto, Authentication auth) {
+
+        // ✅ 1. Get logged-in student's email
+        String email = auth.getName();
+
+        // ✅ 2. Fetch student from DB
+        Student student = studentRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // ✅ 2. Get event
+        EventRequest event = eventRequestRepository.findById(dto.getEventId())
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        // ✅ 3. Check if student registered
+        Optional<EventRegistration> registration =
+                eventRegistrationRepository
+                        .findByStudentIdAndEventId(student.getId(), event.getId());
+
+        if (registration.isEmpty()) {
+            throw new RuntimeException("You are not registered for this event");
+        }
+
+        // ✅ 4. Check event completed
+        if (event.getEventDate().isAfter(LocalDate.now().atStartOfDay())) {
+            throw new RuntimeException("Feedback allowed only after event is over");
+        }
+
+        // ✅ 5. Prevent duplicate feedback
+        boolean exists = feedbackRepository
+                .existsByStudentAndEvent(student, event);
+
+        if (exists) {
+            throw new RuntimeException("You already submitted feedback");
+        }
+
+        // ✅ 6. Save feedback
+        Feedback feedback = Feedback.builder()
+                .message(dto.getMessage())
+                .rating(dto.getRating())
+                .student(student)
+                .event(event)
+                .role("STUDENT")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        feedbackRepository.save(feedback);
+
+        return "Feedback submitted successfully";
     }
 
 }
