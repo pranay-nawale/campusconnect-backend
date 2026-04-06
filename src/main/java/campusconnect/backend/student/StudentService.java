@@ -264,7 +264,7 @@ public class StudentService {
                             .price(event.getPrice())
                             .collegeId(event.getCollege() != null ? event.getCollege().getId() : null)
                             .collegeName(event.getCollege() != null ? event.getCollege().getName() : null)
-//                            .isRegistered(isRegistered) // ✅ FIXED
+
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -382,6 +382,27 @@ public class StudentService {
         feedbackRepository.save(feedback);
 
         return "Feedback submitted successfully";
+    }
+
+    //---------GET STUDENTS FEEDBACK--------------
+    public List<FeedbackResponseDTO> getMyFeedback(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        Student student = studentRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        List<Feedback> feedbacks = feedbackRepository.findByStudent(student);
+
+        return feedbacks.stream()
+                .map(f -> new FeedbackResponseDTO(
+                        f.getEvent().getId(),
+                        f.getEvent().getTitle(),
+                        f.getRating(),
+                        f.getMessage()
+                ))
+                .toList();
     }
 
 }

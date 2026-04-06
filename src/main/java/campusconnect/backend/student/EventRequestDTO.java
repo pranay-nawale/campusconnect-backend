@@ -37,5 +37,7 @@ public class EventRequestDTO {
     private Double price;
 
     private Long collegeId;     // Just send the college ID
-    private String collegeName; // Optional: send college name too
+    private String collegeName;// Optional: send college name too
+
+    private String studentStatus;
 }

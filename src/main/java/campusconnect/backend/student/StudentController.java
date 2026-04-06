@@ -112,6 +112,19 @@ public class StudentController {
         return ResponseEntity.ok(response);
     }
 
+    // ✅ GET FEEDBACK API
+    //----------------------- FEEDBACK ----------------------------
+    @GetMapping("/feedback")
+    public ResponseEntity<?> getMyFeedback(Authentication auth) {
+
+        String email = auth.getName();
+
+        List<FeedbackResponseDTO> feedbacks =
+                studentService.getMyFeedback(email);
+
+        return ResponseEntity.ok(feedbacks);
+    }
+
     // ------------------- GET EVENT BY ID -------------------
     @GetMapping("/events/{id}")
     public ResponseEntity<?> getEventById(
