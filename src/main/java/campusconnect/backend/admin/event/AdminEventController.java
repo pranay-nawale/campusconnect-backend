@@ -5,6 +5,7 @@ import campusconnect.backend.entity.EventStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,6 +34,13 @@ public class AdminEventController {
                                                       @RequestParam EventStatus status)
     {
         return ResponseEntity.ok(adminEventService.updateStatus(id, status));
+    }
+
+    @PostMapping("/{id}/event-plan")
+    public ResponseEntity<AdminEventDTO> uploadEventPlan(@PathVariable("id") Long eventId,
+                                                         @RequestParam MultipartFile file)
+    {
+        return ResponseEntity.ok(adminEventService.uploadEventPlan(eventId,file));
     }
 
     @GetMapping("/{eventId}/services")

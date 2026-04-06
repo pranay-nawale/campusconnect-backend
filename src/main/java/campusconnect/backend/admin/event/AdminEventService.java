@@ -1,6 +1,8 @@
 package campusconnect.backend.admin.event;
 
 import campusconnect.backend.admin.vendor.AdminVendorDTO;
+import campusconnect.backend.common.storage.dto.FileUploadResponse;
+import campusconnect.backend.common.storage.service.FileUploadService;
 import campusconnect.backend.entity.*;
 import campusconnect.backend.notification.NotificationFacade;
 import campusconnect.backend.notification.NotificationType;
@@ -10,6 +12,7 @@ import campusconnect.backend.repository.ServiceRepository;
 import campusconnect.backend.repository.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +37,10 @@ public class AdminEventService {
     @Autowired
     private NotificationFacade notificationFacade;
 
+    @Autowired
+    private FileUploadService fileUploadService;
+
+
     public AdminEventDTO mapToDTO(EventRequest event){
         return AdminEventDTO.builder()
                 .id(event.getId())
@@ -45,6 +52,8 @@ public class AdminEventService {
                 .status(event.getEventStatus())
                 .collegeId(event.getCollege().getId())
                 .collegeName(event.getCollege().getName())
+                .bannerUrl(event.getBannerUrl() != null ? event.getBannerUrl() : null)
+                .eventPlanUrl(event.getEventPlanUrl() != null ? event.getEventPlanUrl() : null)
                 .build();
     }
 
@@ -203,6 +212,30 @@ public class AdminEventService {
                 .orElseThrow(()-> new RuntimeException("service not found"));
 
         return mapToEventServiceDTO(eventService);
+    }
+
+    public AdminEventDTO uploadEventPlan(Long eventId, MultipartFile file){
+
+        EventRequest event = eventRequestRepo.findById(eventId)
+                .orElseThrow(()-> new RuntimeException("event not found"));
+
+        if(event.getEventPlanPublicId() != null){
+            fileUploadService.deleteFile(event.getEventPlanPublicId());
+        }
+
+        FileUploadResponse response =
+                fileUploadService.uploadFile(
+                        file,
+                        "campusconnect/events/eventPlans"
+                );
+
+        event.setEventPlanUrl(response.getUrl());
+        event.setEventPlanPublicId(response.getPublicId());
+        event.setEventStatus(EventStatus.PLANNED);
+
+        eventRequestRepo.save(event);
+
+        return mapToDTO(event);
     }
 
     public AdminVendorDTO mapToVendorDTO(Vendor vendor){

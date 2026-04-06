@@ -41,6 +41,9 @@ public class EventRequest {
     @Column(nullable = false, columnDefinition = "double precision default 0")
     private Double price; // applicable only if isPaid = true
 
+    private String eventPlanUrl;
+    private String eventPlanPublicId;
+
     @ManyToOne
     private College college;
 

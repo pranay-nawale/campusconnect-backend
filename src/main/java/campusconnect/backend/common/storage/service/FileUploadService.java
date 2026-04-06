@@ -22,7 +22,8 @@ public class FileUploadService {
             Map uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", folder
+                            "folder", folder,
+                            "resource_type", "auto"
                     )
             );
 
