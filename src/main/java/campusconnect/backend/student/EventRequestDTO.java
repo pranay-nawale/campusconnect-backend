@@ -2,6 +2,7 @@ package campusconnect.backend.student;
 
 import campusconnect.backend.entity.EventCategory;
 import campusconnect.backend.entity.EventStatus;
+import campusconnect.backend.entity.VerificationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,4 +41,6 @@ public class EventRequestDTO {
     private String collegeName;// Optional: send college name too
 
     private String studentStatus;
+
+    private String msg;
 }
