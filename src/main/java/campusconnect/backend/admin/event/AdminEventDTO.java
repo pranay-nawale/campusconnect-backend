@@ -31,4 +31,9 @@ public class AdminEventDTO {
     private Long collegeId;
 
     private String collegeName;
+
+    private String bannerUrl;
+    private String eventPlanUrl;
+
+
 }

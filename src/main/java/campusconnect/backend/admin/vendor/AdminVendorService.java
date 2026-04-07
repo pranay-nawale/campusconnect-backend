@@ -1,11 +1,9 @@
 package campusconnect.backend.admin.vendor;
 
-import campusconnect.backend.entity.ServiceType;
-import campusconnect.backend.entity.User;
-import campusconnect.backend.entity.Vendor;
-import campusconnect.backend.entity.VerificationStatus;
+import campusconnect.backend.entity.*;
 import campusconnect.backend.notification.NotificationFacade;
 import campusconnect.backend.notification.NotificationType;
+import campusconnect.backend.repository.EventServiceRepository;
 import campusconnect.backend.repository.ServiceRepository;
 import campusconnect.backend.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +22,7 @@ public class AdminVendorService {
     private final VendorRepository vendorRepo;
     private final ServiceRepository serviceRepo;
     private final NotificationFacade notificationFacade;
+    private final EventServiceRepository eventServiceRepo;
 
     public AdminVendorDTO mapToDTO(Vendor vendor) {
 
@@ -116,5 +115,28 @@ public class AdminVendorService {
         }
 
         return mapToDTO(vendor);
+    }
+
+    //get services allocated to a vendor
+    public List<EventServiceDTO> vendorServices(Long vendorId){
+        Vendor vendor = vendorRepo.findById(vendorId)
+                .orElseThrow(()-> new RuntimeException("vendor not found"));
+        List<EventService> services = eventServiceRepo.findByVendorAndEventRequest_EventStatusNot(vendor, EventStatus.COMPLETED);
+
+        return services.stream()
+                .map(this::mapToEventService)
+                .collect(Collectors.toList());
+    }
+
+    public EventServiceDTO mapToEventService(EventService service){
+        return EventServiceDTO.builder()
+                .id(service.getId())
+                .eventId(service.getEventRequest().getId())
+                .eventTitle(service.getEventRequest().getTitle())
+                .serviceId(service.getServiceType().getId())
+                .serviceName(service.getServiceType().getService())
+                .vendorId(service.getVendor().getId())
+                .vendorName(service.getVendor().getBusinessName())
+                .build();
     }
 }

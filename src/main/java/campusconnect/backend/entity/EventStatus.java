@@ -5,5 +5,6 @@ package campusconnect.backend.entity;
         CONFIRMED,  // College confirmed
         REJECTED,   // College/Admin rejected
         RESCHEDULED, // College wants to change date
-        BOOKED // Student booked the event
+        BOOKED, // Student booked the event
+        COMPLETED
     }

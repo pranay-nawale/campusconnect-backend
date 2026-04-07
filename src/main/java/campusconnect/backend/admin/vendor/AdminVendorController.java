@@ -1,5 +1,6 @@
 package campusconnect.backend.admin.vendor;
 
+import campusconnect.backend.entity.EventService;
 import campusconnect.backend.entity.VerificationStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -31,5 +32,11 @@ public class AdminVendorController {
                                                        @RequestParam VerificationStatus status)
     {
         return ResponseEntity.ok(adminVendorService.verifyStatus(id,status));
+    }
+
+    @GetMapping("{id}/services")
+    public ResponseEntity<List<EventServiceDTO>> getVendorServices(@PathVariable("id") Long vendorId)
+    {
+        return ResponseEntity.ok(adminVendorService.vendorServices(vendorId));
     }
 }
