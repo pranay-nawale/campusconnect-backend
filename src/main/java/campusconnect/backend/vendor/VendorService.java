@@ -13,9 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RequiredArgsConstructor
@@ -99,24 +101,50 @@ public class VendorService {
     }
 
     // Upload Brochure PDF
-    public Vendor uploadBrochure(String email, MultipartFile file) {
+//    public Vendor uploadBrochure(String email, MultipartFile file) {
+//
+//        Vendor vendor = getVendorProfile(email);
+//
+//        if (!file.getContentType().equals("application/pdf")) {
+//            throw new RuntimeException("Only PDF files allowed");
+//        }
+//
+//        try {
+//
+//            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+//
+//            Path path = Paths.get("uploads/brochures/" + fileName);
+//
+//            Files.createDirectories(path.getParent());
+//            Files.write(path, file.getBytes());
+//
+//            vendor.setBrochurePdfUrl("/uploads/brochures/" + fileName);
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("File upload failed");
+//        }
+//
+//        return vendorRepository.save(vendor);
+//    }
 
-        Vendor vendor = getVendorProfile(email);
+    public Vendor uploadBrochure(String email, MultipartFile file){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Validate PDF
-        if (!file.getContentType().equals("application/pdf")) {
-            throw new RuntimeException("Only PDF files allowed");
+        Vendor vendor = vendorRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Vendor profile not found"));
+
+        // delete old file
+        if (vendor.getBrochurePublicId() != null) {
+            fileUploadService.deleteFile(vendor.getBrochurePublicId());
         }
-
-        // Upload to Cloudinary
         FileUploadResponse response =
                 fileUploadService.uploadFile(
                         file,
-                        "campusconnect/vendors/brochures"
+                        "campusconnect/vendors/documents"
                 );
 
-        // Save URL + publicId
-        vendor.setBrochurePdfUrl(response.getUrl());
+        vendor.setBrochureUrl(response.getUrl());
         vendor.setBrochurePublicId(response.getPublicId());
 
         return vendorRepository.save(vendor);

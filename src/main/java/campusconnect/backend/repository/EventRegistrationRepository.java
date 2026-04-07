@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface EventRegistrationRepository extends JpaRepository<EventRegistration, Long> {
@@ -15,6 +16,8 @@ public interface EventRegistrationRepository extends JpaRepository<EventRegistra
     boolean existsByStudentIdAndEventId(Long studentId, Long eventId);
     Page<EventRegistration> findByEvent_Id(Long eventId, Pageable pageable);
     Long countByEvent_Id(Long eventId);
+
+    List<EventRegistration> findByStudentId(Long studentId);
 
 
 }

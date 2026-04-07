@@ -23,7 +23,8 @@ public class FileUploadService {
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", folder,
-                            "resource_type", "auto"
+                            "resource_type", "auto",
+                            "type", "upload"
                     )
             );
 

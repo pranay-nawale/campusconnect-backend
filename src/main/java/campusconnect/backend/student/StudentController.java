@@ -92,14 +92,27 @@ public class StudentController {
 
     // ------------------- GET EVENTS REGISTERED BY STUDENT -------------------
     @GetMapping("/events/registered")
-    public ResponseEntity<List<EventRequest>> getRegisteredEvents(Authentication authentication) {
+    public ResponseEntity<List<RegisteredEventDTO>> getRegisteredEvents(Authentication authentication) {
 
         String email = authentication.getName();
 
-        // Fetch all registered events including free ones
-        List<EventRequest> registeredEvents = studentService.getRegisteredEvents(email);
+        List<RegisteredEventDTO> registeredEvents =
+                studentService.getRegisteredEvents(email);
 
         return ResponseEntity.ok(registeredEvents);
+    }
+
+    // ================= PAYMENT SUCCESS API =================
+    @PostMapping("/events/payment-success/{eventId}")
+    public ResponseEntity<?> paymentSuccess(
+            @PathVariable Long eventId,
+            Authentication authentication
+    ) throws Exception {
+
+        String email = authentication.getName();
+        String response = studentService.handlePaymentSuccess(eventId, email);
+
+        return ResponseEntity.ok(response);
     }
 
     //----------------------- FEEDBACK ----------------------------

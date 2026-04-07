@@ -109,8 +109,7 @@ public class StudentService {
                 "You registered for " + event.getTitle() + " 🎉",
                 NotificationType.EVENT_REGISTERED,
                 vars,
-                true,
-                null
+                false
         );
 
         return "Registered Successfully";

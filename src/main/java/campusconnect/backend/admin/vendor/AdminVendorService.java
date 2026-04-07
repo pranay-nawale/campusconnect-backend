@@ -33,6 +33,7 @@ public class AdminVendorService {
                 .phone(vendor.getPhone())
                 .gstNumber(vendor.getGstNumber())
                 .businessLicenseUrl(vendor.getBusinessLicenseUrl())
+                .brochureUrl(vendor.getBrochureUrl())
                 .verificationStatus(vendor.getVerificationStatus())
                 .userId(vendor.getUser() != null ? vendor.getUser().getId() : null)
                 .userName(vendor.getUser() != null ? vendor.getUser().getName() : null)

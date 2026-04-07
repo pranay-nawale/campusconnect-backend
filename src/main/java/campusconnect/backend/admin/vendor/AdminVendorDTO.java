@@ -24,6 +24,8 @@ public class AdminVendorDTO {
 
     private String businessLicenseUrl;
 
+    private String brochureUrl;
+
     private VerificationStatus verificationStatus;
 
     private Long userId;
