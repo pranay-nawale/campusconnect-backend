@@ -80,7 +80,8 @@ public class AdminCollegeService {
                     "Your college has been verified successfully ✅",
                     NotificationType.COLLEGE_APPROVED,
                     vars,
-                    true
+                    true,
+                    null   // ✅ FIX
             );
         }
         else if(status == VerificationStatus.REJECTED){
@@ -89,7 +90,8 @@ public class AdminCollegeService {
                     "Your college verification was rejected ❌",
                     NotificationType.COLLEGE_REJECTED,
                     vars,
-                    true
+                    true,
+                    null   // ✅ FIX
             );
         }
         return mapToDTO(college);

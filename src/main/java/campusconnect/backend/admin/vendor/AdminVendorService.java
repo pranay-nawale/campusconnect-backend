@@ -101,7 +101,8 @@ public class AdminVendorService {
                     "Your vendor account has been approved ✅",
                     NotificationType.VENDOR_APPROVED,
                     vars,
-                    true
+                    true,
+                    null
             );
         }
         else if (status == VerificationStatus.REJECTED) {
@@ -110,7 +111,8 @@ public class AdminVendorService {
                     "Your vendor verification was rejected ❌",
                     NotificationType.VENDOR_REJECTED,
                     vars,
-                    false
+                    true,
+                    null
             );
         }
 

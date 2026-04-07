@@ -116,7 +116,8 @@ public class AdminEventService {
                     "Your event has been confirmed 🎉",
                     NotificationType.EVENT_CONFIRMED,
                     vars,
-                    true
+                    true,
+                    null
             );
         }
         else if(status == EventStatus.REJECTED){
@@ -125,7 +126,8 @@ public class AdminEventService {
                     "Your event has been rejected ❌",
                     NotificationType.EVENT_REJECTED,
                     vars,
-                    true
+                    true,
+                    null
             );
         }
         else if(status == EventStatus.PLANNED){
@@ -134,7 +136,8 @@ public class AdminEventService {
                     "Your event plan has been prepared 📋",
                     NotificationType.EVENT_PLAN_RECEIVED,
                     vars,
-                    false // no email
+                    false,
+                    null
             );
         }
 
@@ -193,7 +196,8 @@ public class AdminEventService {
                 "Vendor assigned for service: " + service.getService(),
                 NotificationType.VENDOR_ASSIGNED,
                 vars,
-                false // no email
+                false,
+                null
         );
 
         return mapToEventServiceDTO(eventService);

@@ -59,7 +59,8 @@ public class AuthService {
                 "Welcome to CampusConnect 🎉",
                 NotificationType.USER_REGISTERED,
                 vars,
-                false
+                true,
+                null
         );
 
         return user;

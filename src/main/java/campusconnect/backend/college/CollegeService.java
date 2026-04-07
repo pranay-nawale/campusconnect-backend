@@ -284,7 +284,8 @@ public class CollegeService {
                 "Your event request has been submitted 📩",
                 NotificationType.EVENT_REGISTERED,
                 vars,
-                false
+                true,
+                null
         );
 
         // Create EventService entries
@@ -490,7 +491,8 @@ public class CollegeService {
                 "Your event has been confirmed after payment 🎉",
                 NotificationType.PAYMENT_SUCCESS,
                 vars,
-                true
+                true,
+                null
         );
 
         return "Event confirmed after advance payment";
@@ -528,7 +530,8 @@ public class CollegeService {
                 "Your event plan has been rejected ❌",
                 NotificationType.EVENT_REJECTED,
                 vars,
-                false
+                false,
+                null
         );
 
         return "Event plan rejected";
@@ -569,7 +572,8 @@ public class CollegeService {
                 "Your event reschedule request has been sent 🔄",
                 NotificationType.EVENT_REMINDER,
                 vars,
-                false
+                false,
+                null
         );
 
         return "Event reschedule request sent";

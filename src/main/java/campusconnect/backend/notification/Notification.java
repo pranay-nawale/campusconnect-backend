@@ -17,7 +17,9 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String title;// better than only message
     private String message;
+
 
     @Enumerated(EnumType.STRING)
     private NotificationType type;
@@ -28,4 +30,11 @@ public class Notification {
 
     @ManyToOne
     private User user;
+
+    @ManyToOne
+    private User receiver;
+
+    @ManyToOne
+    private User sender;
+
 }

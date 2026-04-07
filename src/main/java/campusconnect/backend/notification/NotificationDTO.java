@@ -13,6 +13,7 @@ public class NotificationDTO {
     private Long id;
 
     private String message;
+    private String title;
 
     private NotificationType type;
 

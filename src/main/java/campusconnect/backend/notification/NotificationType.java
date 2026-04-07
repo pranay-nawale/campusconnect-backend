@@ -11,6 +11,8 @@ public enum NotificationType {
 
     COLLEGE_APPROVED,
     COLLEGE_REJECTED,
+    COLLEGE_REGISTERED,
+
 
     VENDOR_APPROVED,
     VENDOR_REJECTED,

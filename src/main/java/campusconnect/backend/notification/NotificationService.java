@@ -18,17 +18,21 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void createNotification(
-            User user,
+            User sender,
+            User receiver,
+            String title,
             String message,
             NotificationType type
     ){
 
         Notification notification = Notification.builder()
+                .title(title)
                 .message(message)
                 .type(type)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
-                .user(user)
+                .sender(sender)
+                .receiver(receiver)
                 .build();
 
         notificationRepository.save(notification);
@@ -41,16 +45,18 @@ public class NotificationService {
                 .createdAt(notification.getCreatedAt())
                 .build();
 
+        // ✅ FIX HERE
         messagingTemplate.convertAndSend(
-                "/topic/notifications/" + user.getId(),
+                "/topic/notifications/" + receiver.getId(),
                 dto
         );
 
+        // ✅ FIX HERE
         long unreadCount =
-                notificationRepository.countByUserAndIsReadFalse(user);
+                notificationRepository.countByReceiverAndIsReadFalse(receiver);
 
         messagingTemplate.convertAndSend(
-                "/topic/unread/" + user.getId(),
+                "/topic/unread/" + receiver.getId(),
                 unreadCount
         );
     }
@@ -60,7 +66,7 @@ public class NotificationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return notificationRepository
-                .findByUserOrderByCreatedAtDesc(user)
+                .findByReceiverOrderByCreatedAtDesc(user)
                 .stream()
                 .map(n -> NotificationDTO.builder()
                         .id(n.getId())
