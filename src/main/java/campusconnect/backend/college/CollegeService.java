@@ -358,6 +358,7 @@ public class CollegeService {
                         .isPaid(event.isPaid()) // ✅ FIXED
                         .price(event.getPrice() != null ? event.getPrice() : 0)
                         .bannerUrl(event.getBannerUrl())
+                        .eventPlanUrl(event.getEventPlanUrl())
 
                         .build())
                 .toList();
@@ -541,6 +542,7 @@ public class CollegeService {
                                     LocalDateTime newDate,
                                     String email){
 
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -549,6 +551,10 @@ public class CollegeService {
 
         EventRequest event = eventRequestRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        if(event.getEventStatus() != EventStatus.PLANNED){
+            throw new RuntimeException("Only planned events can be rescheduled");
+        }
 
         if(!event.getCollege().getId().equals(college.getId())){
             throw new RuntimeException("You cannot modify this event");
@@ -560,6 +566,7 @@ public class CollegeService {
 
         event.setEventDate(newDate);
         event.setEventStatus(EventStatus.RESCHEDULED);
+
 
         eventRequestRepository.save(event);
         Map<String, Object> vars = new HashMap<>();
@@ -574,6 +581,16 @@ public class CollegeService {
                 vars,
                 false,
                 null
+        );
+
+        // 🔥 ADD THIS → notify admin
+        notificationFacade.notifyAdmin(
+                "Reschedule request received 🔄",
+                Map.of(
+                        "eventName", event.getTitle(),
+                        "newDate", newDate,
+                        "collegeName", college.getName()
+                )
         );
 
         return "Event reschedule request sent";

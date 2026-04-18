@@ -98,8 +98,11 @@ public class AdminEventService {
         EventRequest request = eventRequestRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("event not found"));
 
+        validateStatusTransition(request.getEventStatus(), status);
         request.setEventStatus(status);
         eventRequestRepo.save(request);
+
+
 
 // 🔔 Notification logic
         User collegeUser = request.getCollege().getUser();
@@ -164,6 +167,17 @@ public class AdminEventService {
 
         EventRequest event = eventRequestRepo.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("event not found"));
+
+
+        if(event.getEventStatus() == EventStatus.CONFIRMED ||
+                event.getEventStatus() == EventStatus.COMPLETED){
+            throw new RuntimeException("Cannot modify finalized event");
+        }
+
+        if(event.getEventStatus() != EventStatus.PENDING &&
+                event.getEventStatus() != EventStatus.PLANNED){
+            throw new RuntimeException("Vendor can only be assigned in pending or planned stage");
+        }
 
         ServiceType service = serviceRepo.findById(serviceId)
                 .orElseThrow(() -> new RuntimeException("service not found"));
@@ -237,12 +251,20 @@ public class AdminEventService {
     public AdminEventDTO uploadEventPlan(Long eventId, MultipartFile file){
 
         EventRequest event = eventRequestRepo.findById(eventId)
-                .orElseThrow(()-> new RuntimeException("event not found"));
+                .orElseThrow(() -> new RuntimeException("event not found"));
 
+        // ✅ VALIDATION (VERY IMPORTANT)
+        if(event.getEventStatus() != EventStatus.PENDING &&
+                event.getEventStatus() != EventStatus.RESCHEDULED){
+            throw new RuntimeException("Plan can only be uploaded for pending or rescheduled events");
+        }
+
+        // ✅ DELETE OLD FILE IF EXISTS
         if(event.getEventPlanPublicId() != null){
             fileUploadService.deleteFile(event.getEventPlanPublicId());
         }
 
+        // ✅ UPLOAD NEW FILE
         FileUploadResponse response =
                 fileUploadService.uploadFile(
                         file,
@@ -251,12 +273,68 @@ public class AdminEventService {
 
         event.setEventPlanUrl(response.getUrl());
         event.setEventPlanPublicId(response.getPublicId());
+
+        // ✅ SET STATUS
         event.setEventStatus(EventStatus.PLANNED);
 
         eventRequestRepo.save(event);
 
+        // 🔔 NOTIFY COLLEGE (IMPORTANT UX)
+        User collegeUser = event.getCollege().getUser();
+
+        notificationFacade.notifyUser(
+                collegeUser,
+                "Your event plan is ready 📋",
+                NotificationType.EVENT_PLAN_RECEIVED,
+                Map.of(
+                        "eventName", event.getTitle(),
+                        "eventDate", event.getEventDate()
+                ),
+                true,
+                null
+        );
+
         return mapToDTO(event);
     }
+
+    private void validateStatusTransition(EventStatus current, EventStatus next) {
+
+        switch (current) {
+
+            case PENDING -> {
+                if (next != EventStatus.PLANNED &&
+                        next != EventStatus.REJECTED) {
+                    throw new RuntimeException("Invalid transition from PENDING");
+                }
+            }
+
+            case PLANNED -> {
+                if (next != EventStatus.CONFIRMED &&
+                        next != EventStatus.REJECTED &&
+                        next != EventStatus.RESCHEDULED) {
+                    throw new RuntimeException("Invalid transition from PLANNED");
+                }
+            }
+
+            case RESCHEDULED -> {
+                if (next != EventStatus.PLANNED &&
+                        next != EventStatus.REJECTED) {
+                    throw new RuntimeException("Invalid transition from RESCHEDULED");
+                }
+            }
+
+            case CONFIRMED -> {
+                if (next != EventStatus.COMPLETED) {
+                    throw new RuntimeException("Invalid transition from CONFIRMED");
+                }
+            }
+
+            case COMPLETED, REJECTED -> {
+                throw new RuntimeException("Final state cannot be modified");
+            }
+        }
+    }
+
 
     public AdminVendorDTO mapToVendorDTO(Vendor vendor){
         return AdminVendorDTO.builder()

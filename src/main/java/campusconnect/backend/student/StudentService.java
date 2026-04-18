@@ -109,12 +109,86 @@ public class StudentService {
                 "You registered for " + event.getTitle() + " 🎉",
                 NotificationType.EVENT_REGISTERED,
                 vars,
-                false
+                true,
+                null
+        );
+
+        return "Registered Successfully";
+    }
+    private String createRegistration(Student student, EventRequest event, boolean paymentDone) throws Exception {
+
+        String qrData = "EVENT:" + event.getId() +
+                "|USER:" + student.getUser().getId();
+
+        String qrBase64 = qrCodeService.generateQRCodeBase64(qrData);
+
+        EventRegistration registration = EventRegistration.builder()
+                .student(student)
+                .event(event)
+                .paymentDone(paymentDone)
+                .paidAmount(paymentDone ? event.getPrice() : 0.0)
+                .qrCode(qrData)
+                .build();
+
+        eventRegistrationRepository.save(registration);
+
+        // ✅ SEND INVOICE ONLY IF PAID
+        if (paymentDone) {
+
+            Map<String, Object> vars = new HashMap<>();
+            vars.put("name", student.getUser().getName());
+            vars.put("eventName", event.getTitle());
+            vars.put("amount", event.getPrice());
+            vars.put("date", LocalDate.now());
+            vars.put("qrCode", qrBase64);
+
+            byte[] pdf = invoiceService.generateInvoice(vars);
+
+            emailService.sendEmailWithAttachment(
+                    student.getUser().getEmail(),
+                    "Event Registration Invoice",
+                    "<p>You are successfully registered</p>",
+                    pdf
+            );
+        }
+
+        // ✅ NOTIFICATION
+        notificationFacade.notifyUser(
+                student.getUser(),
+                "You registered for " + event.getTitle() + " 🎉",
+                NotificationType.EVENT_REGISTERED,
+                Map.of(
+                        "name", student.getUser().getName(),
+                        "eventName", event.getTitle()
+                ),
+                true,
+                null
         );
 
         return "Registered Successfully";
     }
 
+    // ================= PAYMENT SUCCESS =================
+    @Transactional
+    public String handlePaymentSuccess(Long eventId, String email) throws Exception {
+
+        Student student = studentRepository.findByUser(
+                userRepository.findByEmail(email)
+                        .orElseThrow(() -> new RuntimeException("User not found"))
+        ).orElseThrow(() -> new RuntimeException("Student not found"));
+
+        EventRequest event = eventRequestRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        // ✅ Prevent duplicate
+        if (eventRegistrationRepository
+                .findByStudentIdAndEventId(student.getId(), event.getId()).isPresent()) {
+            return "Already Registered";
+        }
+
+        // 🔥 REGISTER AFTER PAYMENT
+        return createRegistration(student, event, true);
+    }
 
 
     public void uploadDocuments(Student student,
@@ -313,7 +387,7 @@ public class StudentService {
     }
 
     // STUDENT REGISTERED EVENTS FETCH
-    public List<EventRequest> getRegisteredEvents(String email) {
+    public List<RegisteredEventDTO> getRegisteredEvents(String email) {
 
         Student student = studentRepository.findByUser(
                 userRepository.findByEmail(email)
@@ -322,7 +396,16 @@ public class StudentService {
 
         return eventRegistrationRepository.findAll().stream()
                 .filter(er -> er.getStudent().getId().equals(student.getId()))
-                .map(EventRegistration::getEvent)
+                .map(er -> {
+                    EventRequest event = er.getEvent();
+
+                    return new RegisteredEventDTO(
+                            event.getId(),
+                            event.getTitle(),
+                            event.getDescription(),
+                            event.getEventDate()
+                    );
+                })
                 .toList();
     }
 
@@ -333,7 +416,8 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Event not found or not confirmed"));
     }
 
-    //------------------------FEEDBACK--------------
+
+    //---------GET STUDENTS FEEDBACK--------------
     public String giveFeedback(FeedbackRequestDTO dto, String email) {
 
         User user = userRepository.findByEmail(email)
@@ -384,24 +468,49 @@ public class StudentService {
         return "Feedback submitted successfully";
     }
 
-    //---------GET STUDENTS FEEDBACK--------------
     public List<FeedbackResponseDTO> getMyFeedback(String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Student student = studentRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        List<Feedback> feedbacks = feedbackRepository.findByStudent(student);
+        // ✅ Get all registrations of this student
+        List<EventRegistration> registrations =
+                eventRegistrationRepository.findByStudentId(student.getId());
 
-        return feedbacks.stream()
-                .map(f -> new FeedbackResponseDTO(
-                        f.getEvent().getId(),
-                        f.getEvent().getTitle(),
-                        f.getRating(),
-                        f.getMessage()
-                ))
+        return registrations.stream()
+                // ✅ Only COMPLETED events
+                .filter(reg -> reg.getEvent().getEventStatus() == EventStatus.COMPLETED)
+
+                .map(reg -> {
+                    EventRequest event = reg.getEvent();
+
+                    // ✅ Check if feedback already exists
+                    Optional<Feedback> feedbackOpt =
+                            feedbackRepository.findByStudentAndEvent(student, event);
+
+                    if (feedbackOpt.isPresent()) {
+                        Feedback f = feedbackOpt.get();
+
+                        return new FeedbackResponseDTO(
+                                event.getId(),
+                                event.getTitle(),
+                                f.getRating(),
+                                f.getMessage(),
+                                true // ✅ already given
+                        );
+                    } else {
+                        return new FeedbackResponseDTO(
+                                event.getId(),
+                                event.getTitle(),
+                                null,
+                                null,
+                                false // ❌ not given yet
+                        );
+                    }
+                })
                 .toList();
     }
 

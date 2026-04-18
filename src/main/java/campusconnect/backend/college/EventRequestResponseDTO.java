@@ -20,5 +20,6 @@ public class EventRequestResponseDTO {
     private Double price;
     private boolean isPaid;
     private String bannerUrl;
+    private String eventPlanUrl;
 
 }

@@ -54,14 +54,14 @@ public class AuthService {
         Map<String, Object> vars = new HashMap<>();
         vars.put("name", user.getName());
 
-        notificationFacade.notifyUser(
-                user,
-                "Welcome to CampusConnect 🎉",
-                NotificationType.USER_REGISTERED,
-                vars,
-                true,
-                null
-        );
+//        notificationFacade.notifyUser(
+//                user,
+//                "Welcome to CampusConnect 🎉",
+//                NotificationType.USER_REGISTERED,
+//                vars,
+//                true,
+//                null
+//        );
 
         return user;
     }

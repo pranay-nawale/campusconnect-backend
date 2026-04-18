@@ -1,12 +1,16 @@
 package campusconnect.backend.notification;
 
+import campusconnect.backend.entity.Role;
 import campusconnect.backend.entity.User;
+import campusconnect.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -16,6 +20,7 @@ public class NotificationFacade {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final SpringTemplateEngine templateEngine;
+    private final UserRepository  userRepository;
 
     public void notifyUser(
             User user,
@@ -24,7 +29,7 @@ public class NotificationFacade {
             Map<String, Object> vars,
             boolean sendEmail,
             byte[] attachment // optional (for invoice)
-    ){
+    ) {
 
         // 🔔 Save notification (optional for now)
         notificationService.createNotification(
@@ -35,10 +40,10 @@ public class NotificationFacade {
                 type
         );
 
-        if(sendEmail){
+        if (sendEmail) {
             try {
 
-                if(vars == null){
+                if (vars == null) {
                     vars = new HashMap<>();
                 }
 
@@ -47,10 +52,10 @@ public class NotificationFacade {
                 String subject;
                 String template;
 
-                switch(type){
+                switch (type) {
 
                     // 👤 STUDENT FLOW
-                    case USER_REGISTERED -> {
+                    case STUDENT_REGISTERED -> {
                         subject = "Profile Under Review";
                         template = "email/student-registered";
                     }
@@ -76,11 +81,43 @@ public class NotificationFacade {
                         template = "email/payment-invoice";
                     }
 
+                    case EVENT_APPROVED -> {
+                        subject = "Event Approved";
+                        template = "email/event-approved";
+                    }
+
+                    case EVENT_REJECTED -> {
+                        subject = "Event Rejected";
+                        template = "email/event-rejected";
+                    }
+
+                    case EVENT_PLAN_RECEIVED -> {
+                        subject = "Event Plan Received";
+                        template = "email/event-plan-received";
+                    }
+
+
                     // 🧑‍🔧 VENDOR FLOW
+                    case VENDOR_REGISTERED -> {
+                        subject = "Vendor Registration Successful";
+                        template = "email/vendor-registered";
+                    }
+
                     case VENDOR_ASSIGNED -> {
                         subject = "Service Assigned";
                         template = "email/vendor-assigned";
                     }
+
+                    case VENDOR_REJECTED -> {
+                        subject = "Service Rejected";
+                        template = "email/vendor-rejected";
+                    }
+
+                    case VENDOR_APPROVED -> {
+                        subject = "Service Approved";
+                        template = "email/vendor-approved";
+                    }
+
 
 //                    college flow
                     case COLLEGE_REGISTERED -> {
@@ -110,7 +147,7 @@ public class NotificationFacade {
                 String html = templateEngine.process(template, context);
 
                 // 📎 With attachment (invoice)
-                if(attachment != null){
+                if (attachment != null) {
                     emailService.sendEmailWithAttachment(
                             user.getEmail(),
                             subject,
@@ -125,12 +162,33 @@ public class NotificationFacade {
                     );
                 }
 
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
+    public void notifyAdmin(String message,
+                            Map<String, Object> vars) {
+
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+        if(admins.isEmpty()){
+            throw new RuntimeException("No admin found");
+        }
+
+        for (User admin : admins) {
+            notifyUser(
+                    admin,
+                    message,
+                    NotificationType.ADMIN_ALERT,
+                    vars,
+                    false,
+                    null
+            );
+        }
+    }
 }
+
 //package campusconnect.backend.notification;
 //
 //import campusconnect.backend.entity.User;
